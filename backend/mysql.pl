@@ -103,44 +103,189 @@ sub backend_mysql_primary_key_exists {
 sub backend_mysql_load_data {
 	my $temp_time = time();
 
-	opendir(DIR, "mbdump") || die "Can't open ./mbdump: $!";
-	my @files = sort(grep { $_ ne '.' and $_ ne '..' } readdir(DIR));
-	my $count = @files;
+	# opendir(DIR, "mbdump") || die "Can't open ./mbdump: $!";
+	# my @files = sort(grep { $_ ne '.' and $_ ne '..' } readdir(DIR));
+	# my $count = @files;
+	# my $i = 1;
+
+	$base_path = "/tmp/musicbrainz/mbdump/mbdump";
+
+	@tables_to_load = (
+
+		# area
+		'area',
+		'area_alias',
+		'area_alias_type',
+		'area_annotation',
+		'area_gid_redirect',
+		'area_type',
+
+		# artist
+		'artist',
+		'artist_alias',
+		'artist_alias_type',
+		'artist_credit',
+		'artist_credit_name',
+		'artist_gid_redirect',
+		'artist_ipi',
+		'artist_isni',
+		'artist_name',
+
+		# label
+		'label_alias',
+		'label_alias_type',
+		'label_gid_redirect',
+		'label_ipi',
+		'label_isni',
+		'label_name',
+		'label_type',
+
+		# release
+		'release_country',
+		'release_gid_redirect',
+		'release_group',
+		'release_group_gid_redirect',
+		'release_group_primary_type',
+		'release_group_secondary_type',
+		'release_group_secondary_type_join',
+		'release_label',
+		'release_name',
+		'release_packaging',
+		'release_status',
+		'release_unknown_country',
+
+		# url
+		'url',
+		'url_gid_redirect',
+
+		# work
+		'work_alias',
+		'work_alias_type',
+		'work_gid_redirect',
+		'work_name',
+		'work_type',
+
+		# random
+		'country_area',
+		'gender',
+
+		# iso
+		'iso_3166_1',
+		'iso_3166_2',
+		'iso_3166_3',
+
+		# links
+		'l_area_area',
+		'l_area_artist',
+		'l_area_label',
+		'l_area_recording',
+		'l_area_release',
+		'l_area_release_group',
+		'l_area_url',
+		'l_area_work',
+		'l_artist_artist',
+		'l_artist_label',
+		'l_artist_recording',
+		'l_artist_release',
+		'l_artist_release_group',
+		'l_artist_url',
+		'l_artist_work',
+		'l_label_label',
+		'l_label_recording',
+		'l_label_release',
+		'l_label_release_group',
+		'l_label_url',
+		'l_label_work',
+		'l_recording_recording',
+		'l_recording_release',
+		'l_recording_release_group',
+		'l_recording_url',
+		'l_recording_work',
+		'l_release_group_release_group',
+		'l_release_group_url',
+		'l_release_group_work',
+		'l_release_release',
+		'l_release_release_group',
+		'l_release_url',
+		'l_release_work',
+		'l_url_url',
+		'l_url_work',
+		'l_work_work',
+
+		# cover_art_archive
+		'../coverart/cover_art_archive.art_type',
+		'../coverart/cover_art_archive.cover_art',
+		'../coverart/cover_art_archive.cover_art_type',
+		'../coverart/cover_art_archive.image_type',
+		'../coverart/cover_art_archive.release_group_cover_art',
+	);
+
+	my $count = @tables_to_load;
 	my $i = 1;
-
-	foreach my $file (@files) {
+	foreach my $file_name (@tables_to_load) {
 		my $t1 = time();
-		$table = $file;
-		next if($table eq "blank.file" || substr($table, 0, 1) eq '.');
-		next if( -d "./mbdump/$table");
+		$full_path = "${base_path}/$file_name";
+		next if (-d $full_path);
 
-		if(substr($table, 0, 11) eq "statistics.")
+		$table = $file_name;
+		if(substr($table, 0, 30) eq "../coverart/cover_art_archive.")
 		{
-			$table = substr($table, 11, length($table) - 11);
+			$table = substr($table, 30, length($table) - 30);
 		}
 
 		if(backend_mysql_table_column_exists($table,"dummycolumn"))
 		{
-       			mbz_do_sql("ALTER TABLE `$table` DROP COLUMN dummycolumn");
+			mbz_do_sql("ALTER TABLE `$table` DROP COLUMN dummycolumn");
 		}
 
 		print "\n" . localtime() . ": Loading data into '$table' ($i of $count)...\n";
-		mbz_do_sql("LOAD DATA LOCAL INFILE 'mbdump/$file' INTO TABLE `$table` ".
+		mbz_do_sql("LOAD DATA LOCAL INFILE '$full_path' INTO TABLE `$table` ".
 		           "FIELDS TERMINATED BY '\\t' ".
 		           "ENCLOSED BY '' ".
 		           "ESCAPED BY '\\\\' ".
 		           "LINES TERMINATED BY '\\n' ".
 		           "STARTING BY ''");
-
 		my $t2 = time();
 		print "Done (" . mbz_format_time($t2 - $t1) . ")\n";
 		++$i;
 	}
 
-	# clean up
-	closedir(DIR);
 	my $t2 = time();
 	print "\nComplete (" . mbz_format_time($t2 - $temp_time) . ")\n";
+
+	# foreach my $file (@files) {
+	# 	my $t1 = time();
+	# 	$table = $file;
+	# 	next if($table eq "blank.file" || substr($table, 0, 1) eq '.');
+	# 	next if( -d "./mbdump/$table");
+
+	# 	if(substr($table, 0, 11) eq "statistics.")
+	# 	{
+	# 		$table = substr($table, 11, length($table) - 11);
+	# 	}
+
+	# 	if(backend_mysql_table_column_exists($table,"dummycolumn"))
+	# 	{
+ #       			mbz_do_sql("ALTER TABLE `$table` DROP COLUMN dummycolumn");
+	# 	}
+
+	# 	print "\n" . localtime() . ": Loading data into '$table' ($i of $count)...\n";
+	# 	mbz_do_sql("LOAD DATA LOCAL INFILE 'mbdump/$file' INTO TABLE `$table` ".
+	# 	           "FIELDS TERMINATED BY '\\t' ".
+	# 	           "ENCLOSED BY '' ".
+	# 	           "ESCAPED BY '\\\\' ".
+	# 	           "LINES TERMINATED BY '\\n' ".
+	# 	           "STARTING BY ''");
+
+	# 	my $t2 = time();
+	# 	print "Done (" . mbz_format_time($t2 - $t1) . ")\n";
+	# 	++$i;
+	# }
+
+	# # clean up
+	# closedir(DIR);
+	# my $t2 = time();
+	# print "\nComplete (" . mbz_format_time($t2 - $temp_time) . ")\n";
 }
 
 
@@ -322,6 +467,7 @@ sub backend_mysql_update_index_from_file {
 		my $success = mbz_do_sql($new_line);
 
 		# if the index fails we will run it again as non-unique
+		# TODO: nodie here?
 		if(!$success) {
 			$new_line =~ s/UNIQUE//;
 			mbz_do_sql($new_line);
@@ -350,11 +496,12 @@ sub backend_mysql_update_index {
 	return 1;
 }
 
-# backend_mysql_update_foreignkey()
+# backend_mysql_update_foreignkey_from_file()
 # Attemp to pull as much relevant information from CreateFKConstraints.sql as we can.
 # @return Always 1.
-sub backend_mysql_update_foreignkey {
-	open(SQL, "replication/CreateFKConstraints.sql");
+sub backend_mysql_update_foreignkey_from_file {
+	my $file_path = $_[0];
+	open(SQL, $file_path);
 	chomp(my @lines = <SQL>);
 	my $index_name = "", $table_name = "", $columns = [], $foreign_table_name = "", $foreign_columns = [];
 
@@ -402,6 +549,11 @@ sub backend_mysql_update_foreignkey {
 
 	print "Done\n";
 	return 1;
+}
+
+sub backend_mysql_update_foreignkey {
+	backend_mysql_update_foreignkey_from_file("replication/CreateFKConstraints.sql");
+	backend_mysql_update_foreignkey_from_file("replication/coverart/CreateFKConstraints.sql");
 }
 
 
