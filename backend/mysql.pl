@@ -130,6 +130,7 @@ sub backend_mysql_load_data {
 		'artist_ipi',
 		'artist_isni',
 		'artist_name',
+		'artist_type',
 
 		# label
 		'label',
