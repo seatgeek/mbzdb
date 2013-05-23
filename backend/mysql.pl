@@ -50,13 +50,13 @@ sub backend_mysql_escape_entity {
 # @return MySQL column type.
 sub backend_mysql_get_column_type {
 	my ($table_name, $col_name) = @_;
-	
+
 	my $sth = $dbh->prepare("describe `$table_name`");
 	$sth->execute();
 	while(@result = $sth->fetchrow_array()) {
 		return $result[1] if($result[0] eq $col_name);
 	}
-	
+
 	return "";
 }
 
@@ -67,7 +67,7 @@ sub backend_mysql_get_column_type {
 # @return 1 if the index exists, otherwise 0.
 sub backend_mysql_index_exists {
 	my $index_name = $_[0];
-	
+
 	# yes I know this is a highly inefficent way to do it, but its simple and is only called on
 	# schema changes.
 	my $sth = $dbh->prepare("show tables");
@@ -79,7 +79,7 @@ sub backend_mysql_index_exists {
 			return 1 if($result2[2] eq $index_name);
 		}
 	}
-	
+
 	# the index was not found
 	return 0;
 }
@@ -114,7 +114,7 @@ sub backend_mysql_load_data {
 		$table = $file;
 		next if($table eq "blank.file" || substr($table, 0, 1) eq '.');
 		next if( -d "./mbdump/$table");
-		
+
 		if(substr($table, 0, 11) eq "statistics.")
 		{
 			$table = substr($table, 11, length($table) - 11);
@@ -124,7 +124,7 @@ sub backend_mysql_load_data {
 		{
        			mbz_do_sql("ALTER TABLE `$table` DROP COLUMN dummycolumn");
 		}
-		
+
 		print "\n" . localtime() . ": Loading data into '$table' ($i of $count)...\n";
 		mbz_do_sql("LOAD DATA LOCAL INFILE 'mbdump/$file' INTO TABLE `$table` ".
 		           "FIELDS TERMINATED BY '\\t' ".
@@ -170,13 +170,13 @@ sub backend_mysql_load_pending {
 		INTO TABLE `$g_pendingdata`
 	|);
 	print "Done\n";
-	
+
 	# PLUGIN_beforereplication()
 	foreach my $plugin (@g_active_plugins) {
 		my $function_name = "${plugin}_beforereplication";
 		(\&$function_name)->($id) || die($!);
 	}
-	
+
 	return 1;
 }
 
@@ -189,7 +189,7 @@ sub backend_mysql_load_pending {
 sub backend_mysql_table_column_exists {
 	my ($table_name, $col_name) = @_;
 	return 0 if($table_name eq "");
-	
+
 	my $sth = $dbh->prepare("describe `$table_name`");
 	$sth->execute();
 	while(@result = $sth->fetchrow_array()) {
@@ -199,7 +199,7 @@ sub backend_mysql_table_column_exists {
 			return 1 if($result[0] eq $col_name);
 		}
 	}
-	
+
 	# table column was not found
 	return 0;
 }
@@ -213,13 +213,13 @@ sub backend_mysql_table_column_exists {
 # @return 1 if the table exists, otherwise 0.
 sub backend_mysql_table_exists {
 	my $table_name = $_[0];
-	
+
 	my $sth = $dbh->prepare('show tables');
 	$sth->execute();
 	while(@result = $sth->fetchrow_array()) {
 		return 1 if($result[0] eq $table_name);
 	}
-	
+
 	# table was not found
 	return 0;
 }
@@ -233,34 +233,34 @@ sub backend_mysql_table_exists {
 sub backend_mysql_update_index {
 	open(SQL, "replication/CreateIndexes.sql");
 	chomp(my @lines = <SQL>);
-	
+
 	my $index_size = 200;
 	foreach my $line (@lines) {
 		$line = mbz_trim($line);
 		my $pos_index = index($line, 'INDEX ');
 		my $pos_on = index($line, 'ON ');
-		
+
 		# skip blank lines, comments, psql settings and lines that arn't any use to us.
 		next if($line eq '' || substr($line, 0, 2) eq '--' || substr($line, 0, 1) eq "\\" ||
 		        $pos_index < 0);
-		        
+
 		# skip function-based indexes.
 		next if($line =~ /.*\(.*\(.*\)\)/);
-		
+
 		# get the names
 		my $index_name = mbz_trim(substr($line, $pos_index + 6, index($line, ' ', $pos_index + 7) -
 		                       $pos_index - 6));
 		my $table_name = mbz_trim(substr($line, $pos_on + 3, index($line, ' ', $pos_on + 4) -
 		                       $pos_on - 3));
 		my $cols = substr($line, index($line, '(') + 1, index($line, ')') - index($line, '(') - 1);
-		
+
 		# PostgreSQL will put double-quotes around some entity names, we have to remove these
 		$index_name = mbz_remove_quotes($index_name);
 		$table_name = mbz_remove_quotes($table_name);
-		
+
 		# see if the index aleady exists, if so skip
 		next if(mbz_index_exists($index_name));
-		
+
 		# split and clean column names. this is also a good time to find out there type, if its
 		# TEXT then MySQL requires and index length.
 		my @columns = split(",", $cols);
@@ -271,15 +271,15 @@ sub backend_mysql_update_index {
 				$columns[$i] = "`" . mbz_trim(mbz_remove_quotes($columns[$i])) . "`";
 			}
 		}
-		
+
 		# now we construct the index back together in case there was changes along the way
 		$new_line = substr($line, 0, $pos_index) . "INDEX `$index_name` ON `$table_name` (";
 		$new_line .= join(",", @columns) . ")";
-		
+
 		# all looks good so far ... create the index
 		print "$new_line\n";
 		my $success = mbz_do_sql($new_line);
-		
+
 		# if the index fails we will run it again as non-unique
 		if(!$success) {
 			$new_line =~ s/UNIQUE//;
@@ -287,7 +287,7 @@ sub backend_mysql_update_index {
 		}
 	}
 	close(SQL);
-	
+
 	open(SQL, "replication/CreatePrimaryKeys.sql");
 	chomp(my @lines = <SQL>);
 	foreach my $line (@lines) {
@@ -382,7 +382,7 @@ sub backend_mysql_update_foreignkey {
 		}
 	}
 	close(SQL);
-	
+
 	print "Done\n";
 	return 1;
 }
@@ -391,7 +391,7 @@ sub backend_mysql_update_foreignkey {
 sub backend_mysql_update_schema_from_file {
 	# TODO: this does not check for columns that have changed their type, as a column that already
 	#       exists will be ignored. I'm not sure how important this is but its worth noting.
-	
+
 	# this is where it has to translate PostgreSQL to MySQL as well as making any modifications
 	# needed
 	open(SQL, $_[0]);
@@ -404,7 +404,7 @@ sub backend_mysql_update_schema_from_file {
 
 		# skip blank lines and single bracket lines
 		next if($line eq "" || $line eq "(" || substr($line, 0, 1) eq "\\" || substr(mbz_trim($line), 0, 2) eq '--');
-		
+
 		#If in ignore mode
 		if($ignore eq 1) {
 			if ( (index($line,",") > 0) || (index($line,";") > 0) ) {
@@ -423,7 +423,7 @@ sub backend_mysql_update_schema_from_file {
 			}
 			$table = mbz_trim($table);
 			print $L{'table'} . " $table\n";
-			
+
 			# do not create the table if it already exists
 			if(!mbz_table_exists($table)) {
 				$stmt = "CREATE TABLE `$table` (dummycolumn int)";
@@ -440,12 +440,16 @@ sub backend_mysql_update_schema_from_file {
 			$enums{$table} = $content;
 		} elsif(substr(mbz_trim($line),0,5) eq "CHECK" || substr(mbz_trim($line),0,5) eq 'ALTER') {
 			#Ignore the line rest of lines
-			$ignore = 1;
+			if ( (index($line,",") > 0) || (index($line,";") > 0) ) {
+				$ignore = 0;
+			} else {
+				$ignore = 1;
+			}
 		} elsif(substr($line, 0, 1) eq " " || substr($line, 0, 1) eq "\t") {
-			
+
 			my @parts = split(" ", $line);
 			for($i = 0; $i < @parts; ++$i) {
-				
+
 				if(substr($parts[$i], 0, 2) eq "--") {
 					@parts = @parts[0 .. ($i - 1)];
 					last;
@@ -454,7 +458,7 @@ sub backend_mysql_update_schema_from_file {
 					@parts = @parts[0 .. ($i - 1)];
 					last;
 				}
-				
+
 				if(substr($parts[$i], length($parts[$i]) - 2, 2) eq "[]") {
 					$parts[$i] = "VARCHAR(255)";
 				}
@@ -478,10 +482,10 @@ sub backend_mysql_update_schema_from_file {
 			if(substr(reverse($parts[@parts - 1]), 0, 1) eq ",") {
 				$parts[@parts - 1] = substr($parts[@parts - 1], 0, length($parts[@parts - 1]) - 1);
 			}
-			
+
 			next if(uc($parts[0]) eq "CHECK" || uc($parts[0]) eq "CONSTRAINT" || $parts[0] eq "");
 			$parts[0] = mbz_remove_quotes($parts[0]);
-			
+
 			if(uc($parts[0]) ne "PRIMARY" && uc($parts[0]) ne "FOREIGN") {
 				$new_col = "`$parts[0]`";
 			} else {
@@ -489,7 +493,7 @@ sub backend_mysql_update_schema_from_file {
 			}
 			$stmt = "ALTER TABLE `$table` ADD $new_col " .
 				join(" ", @parts[1 .. @parts - 1]);
-			
+
 			# no need to create the column if it already exists in the table
 			$stmt = "" if($table eq "" || mbz_table_column_exists($table, $parts[0]));
 		} elsif(substr($line, 0, 2) eq ");") {
@@ -497,13 +501,13 @@ sub backend_mysql_update_schema_from_file {
 				$stmt = "ALTER TABLE `$table` DROP dummycolumn";
 			}
 		}
-		
+
 		if(mbz_trim($stmt) ne "") {
 			mbz_do_sql($stmt);
 			#$dbh->do($stmt) or print "";
 		}
 	}
-	
+
 	close(SQL);
 	return 1;
 }
