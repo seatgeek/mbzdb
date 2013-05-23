@@ -1,6 +1,6 @@
 CREATE OR REPLACE VIEW s_artist AS
     SELECT
-        a.id, a.gid, n.name, sn.name AS sort_name,
+        a.id, a.gid as 'mbid', n.name, sn.name AS sort_name,
         a.begin_date_year, a.begin_date_month, a.begin_date_day,
         a.end_date_year, a.end_date_month, a.end_date_day,
         at.name as `type`, aa.name as 'country', gender, comment,
@@ -67,5 +67,20 @@ CREATE OR REPLACE VIEW s_track AS
         length, edits_pending, last_updated, t.number
     FROM track t
     JOIN track_name n ON t.name=n.id;
+
+-- CUSTOM VIEWS
+CREATE OR REPLACE VIEW s_official_url AS
+SELECT  a.id,
+        a.gid as 'mbid',
+        an.name as 'artist_name'
+        u.url as 'url',
+FROM artist a
+    JOIN artist_name an ON a.name = an.id
+    JOIN l_artist_url au ON a.id = au.entity0
+    JOIN url u ON u.id = au.entity1
+    JOIN link l ON au.link = l.id
+WHERE link_type in (287, 183, 219)
+
+
 
 -- vi: set ts=4 sw=4 et :
