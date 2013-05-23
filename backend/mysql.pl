@@ -132,6 +132,7 @@ sub backend_mysql_load_data {
 		'artist_name',
 
 		# label
+		'label',
 		'label_alias',
 		'label_alias_type',
 		'label_gid_redirect',
@@ -141,6 +142,7 @@ sub backend_mysql_load_data {
 		'label_type',
 
 		# release
+		'release',
 		'release_country',
 		'release_gid_redirect',
 		'release_group',
@@ -159,6 +161,7 @@ sub backend_mysql_load_data {
 		'url_gid_redirect',
 
 		# work
+		'work',
 		'work_alias',
 		'work_alias_type',
 		'work_gid_redirect',
