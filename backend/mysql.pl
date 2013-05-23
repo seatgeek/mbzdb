@@ -179,6 +179,13 @@ sub backend_mysql_load_data {
 		'iso_3166_3',
 
 		# links
+
+		'link',
+		'link_attribute',
+		'link_attribute_type',
+		'link_type',
+		'link_type_attribute_type',
+
 		'l_area_area',
 		'l_area_artist',
 		'l_area_label',
