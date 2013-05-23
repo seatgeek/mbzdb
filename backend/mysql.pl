@@ -50,7 +50,6 @@ sub backend_mysql_escape_entity {
 # @return MySQL column type.
 sub backend_mysql_get_column_type {
 	my ($table_name, $col_name) = @_;
-
 	my $sth = $dbh->prepare("describe `$table_name`");
 	$sth->execute();
 	while(@result = $sth->fetchrow_array()) {
@@ -224,14 +223,56 @@ sub backend_mysql_table_exists {
 	return 0;
 }
 
+sub backend_mysql_update_pk_from_file {
+	my $file_path = $_[0];
+	open(SQL, $file_path);
+	my $index_size = 200;
 
-# backend_mysql_update_index()
-# Attemp to pull as much relevant information from CreateIndexes.sql as we can. MySQL does not
-# support function indexes so we will skip those. Any indexes created already on the database will
-# be left intact.
-# @return Always 1.
-sub backend_mysql_update_index {
-	open(SQL, "replication/CreateIndexes.sql");
+	chomp(my @lines = <SQL>);
+	foreach my $line (@lines) {
+		$line = mbz_trim($line);
+
+		# skip blank lines and single bracket lines
+		next if($line eq "" || substr($line, 0, 2) eq "--" || substr($line, 0, 1) eq "\\" ||
+		        substr($line, 0, 5) eq "BEGIN" ||
+		        substr($line, 0, 3) eq "SET");
+
+		my $pos_table = index($line, 'TABLE ');
+		my $pos_add = index($line, 'ADD ');
+		my $pos_index = index($line, 'CONSTRAINT ');
+
+		my $table_name = mbz_trim(substr($line, $pos_table + length('TABLE '), $pos_add - $pos_table - length('TABLE ')));
+		my $index_name = mbz_trim(substr($line, $pos_index + 11, index($line, ' ', $pos_index + 12) -
+				                  $pos_index - 11));
+		my $cols = substr($line, index($line, '(') + 1, index($line, ')') - index($line, '(') - 1);
+
+		# no need to create the index if it already exists
+		next if(backend_mysql_primary_key_exists($table_name));
+
+		# split and clean column names. this is also a good time to find out there type, if its
+		# TEXT then MySQL requires and index length.
+		my @columns = split(",", $cols);
+		for(my $i = 0; $i < @columns; ++$i) {
+			if((backend_mysql_get_column_type($table_name, mbz_trim($columns[$i])) eq 'text')  || (backend_mysql_get_column_type($table_name, mbz_trim($columns[$i])) eq 'varchar') ) {
+				$columns[$i] = "`" . mbz_trim(mbz_remove_quotes($columns[$i])) . "`($index_size)";
+			} else {
+				$columns[$i] = "`" . mbz_trim(mbz_remove_quotes($columns[$i])) . "`";
+			}
+		}
+
+		# now we construct the index back together in case there was changes along the way
+		$new_line = "ALTER TABLE `$table_name` ADD CONSTRAINT `$index_name` PRIMARY KEY  (";
+		$new_line .= join(",", @columns) . ")";
+
+		print $new_line;
+		mbz_do_sql($new_line, 'nodie');
+	}
+	close(SQL);
+}
+
+sub backend_mysql_update_index_from_file {
+	my $file_path = $_[0];
+	open(SQL, $file_path);
 	chomp(my @lines = <SQL>);
 
 	my $index_size = 200;
@@ -287,47 +328,23 @@ sub backend_mysql_update_index {
 		}
 	}
 	close(SQL);
+}
 
-	open(SQL, "replication/CreatePrimaryKeys.sql");
-	chomp(my @lines = <SQL>);
-	foreach my $line (@lines) {
-		$line = mbz_trim($line);
 
-		# skip blank lines and single bracket lines
-		next if($line eq "" || substr($line, 0, 2) eq "--" || substr($line, 0, 1) eq "\\" ||
-		        substr($line, 0, 5) eq "BEGIN");
+# backend_mysql_update_index()
+# Attemp to pull as much relevant information from CreateIndexes.sql as we can. MySQL does not
+# support function indexes so we will skip those. Any indexes created already on the database will
+# be left intact.
+# @return Always 1.
+sub backend_mysql_update_index {
 
-		my $pos_table = index($line, 'TABLE ');
-		my $pos_add = index($line, 'ADD ');
-		my $pos_index = index($line, 'CONSTRAINT ');
+	print "Main DB\n";
+	backend_mysql_update_index_from_file("replication/CreateIndexes.sql");
+	backend_mysql_update_pk_from_file("replication/CreatePrimaryKeys.sql");
 
-		my $table_name = mbz_trim(substr($line, $pos_table + length('TABLE '), $pos_add - $pos_table - length('TABLE ')));
-		my $index_name = mbz_trim(substr($line, $pos_index + 11, index($line, ' ', $pos_index + 12) -
-				                  $pos_index - 11));
-		my $cols = substr($line, index($line, '(') + 1, index($line, ')') - index($line, '(') - 1);
-
-		# no need to create the index if it already exists
-		next if(backend_mysql_primary_key_exists($table_name));
-
-		# split and clean column names. this is also a good time to find out there type, if its
-		# TEXT then MySQL requires and index length.
-		my @columns = split(",", $cols);
-		for(my $i = 0; $i < @columns; ++$i) {
-			if((backend_mysql_get_column_type($table_name, mbz_trim($columns[$i])) eq 'text')  || (backend_mysql_get_column_type($table_name, mbz_trim($columns[$i])) eq 'varchar') ) {
-				$columns[$i] = "`" . mbz_trim(mbz_remove_quotes($columns[$i])) . "`($index_size)";
-			} else {
-				$columns[$i] = "`" . mbz_trim(mbz_remove_quotes($columns[$i])) . "`";
-			}
-		}
-
-		# now we construct the index back together in case there was changes along the way
-		$new_line = "ALTER TABLE `$table_name` ADD CONSTRAINT `$index_name` PRIMARY KEY  (";
-		$new_line .= join(",", @columns) . ")";
-
-		print "$new_line\n";
-		mbz_do_sql($new_line, 'nodie');
-	}
-	close(SQL);
+	print "Cover Art DB\n";
+	backend_mysql_update_index_from_file("replication/coverart/CreateIndexes.sql");
+	backend_mysql_update_pk_from_file("replication/coverart/CreatePrimaryKeys.sql");
 
 	print "Done\n";
 	return 1;
