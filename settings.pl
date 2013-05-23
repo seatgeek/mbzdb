@@ -25,9 +25,9 @@ $g_db_rdbms = 'mysql';
 # Schema. This is where the SQL scripts to create the schema come from, only edit this if you know
 # what you're doing.
 
-$schema_base = 'https://github.com/metabrainz/musicbrainz-server/tree/master/admin/sql'
-$schema_base_caa = "${schema_base}/caa"
-$schema_base_stats = "${schema_base}/statistics"
+$schema_base = 'https://raw.github.com/metabrainz/musicbrainz-server/master/admin/sql';
+$schema_base_caa = "${schema_base}/caa";
+$schema_base_stats = "${schema_base}/statistics";
 
 
 # create tables
@@ -36,21 +36,21 @@ $schema_base_stats = "${schema_base}/statistics"
 # create primary keys
 # create functions
 
-$g_schema_url = "${schema_base}CreateTables.sql";
-$g_indexfk_url = "${schema_base}CreateFKConstraints.sql";
-$g_index_url = "${schema_base}CreateIndexes.sql";
-$g_pk_url = "${schema_base}CreatePrimaryKeys.sql";
-$g_func_url = "${schema_base}CreateFunctions.sql";
-$g_pending_url = "${schema_base}ReplicationSetup.sql";
+$g_schema_url = "${schema_base}/CreateTables.sql";
+$g_indexfk_url = "${schema_base}/CreateFKConstraints.sql";
+$g_index_url = "${schema_base}/CreateIndexes.sql";
+$g_pk_url = "${schema_base}/CreatePrimaryKeys.sql";
+$g_func_url = "${schema_base}/CreateFunctions.sql";
+$g_pending_url = "${schema_base}/ReplicationSetup.sql";
 
-$g_caa_schema_url = "${schema_base_caa}CreateTables.sql";
-$g_caa_indexfk_url = "${schema_base_caa}CreateFKConstraints.sql";
-$g_caa_index_url = "${schema_base_caa}CreateIndexes.sql";
-$g_caa_pk_url = "${schema_base_caa}CreatePrimaryKeys.sql";
-$g_caa_func_url = "${schema_base_caa}CreateFunctions.sql";
-$g_caa_pending_url = "${schema_base_caa}ReplicationSetup.sql";
+$g_caa_schema_url = "${schema_base_caa}/CreateTables.sql";
+$g_caa_indexfk_url = "${schema_base_caa}/CreateFKConstraints.sql";
+$g_caa_index_url = "${schema_base_caa}/CreateIndexes.sql";
+$g_caa_pk_url = "${schema_base_caa}/CreatePrimaryKeys.sql";
+$g_caa_func_url = "${schema_base_caa}/CreateFunctions.sql";
+$g_caa_pending_url = "${schema_base_caa}/ReplicationSetup.sql";
 
-$g_stats_schema_url = "${schema_base_stats}CreateTables.sql";
+$g_stats_schema_url = "${schema_base_stats}/CreateTables.sql";
 
 # Replications URL
 $g_rep_host = "ftp.musicbrainz.org";

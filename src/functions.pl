@@ -51,7 +51,7 @@ sub mbz_choose_language {
 		print $L{'invalid'} . "\n\n";
 		goto choose;
 	}
-	
+
 	$g_chosenlanguage = 1;
 	$g_language = $langoptions[$input];
 	mbz_rewrite_settings();
@@ -124,13 +124,13 @@ sub mbz_download_replication {
 	my $id = $_[0];
 	my $found = 1;
 	print "===== $id =====\n";
-	
+
 	# its possible the script was exited by the user or a crash during downloading or decompression,
 	# for this reason we always download the latest copy.
 	print localtime() . ": Downloading... ";
 	$localfile = "replication/replication-$id.tar.bz2";
 	$file = "replication-$id.tar.bz2";
-	
+
 	my $ftp = Net::FTP->new($g_rep_host, Timeout => 60, Passive => 1)
 				or die "Cannot contact $host: $!";
 	$ftp->login('anonymous') or die "Can't login ($host): " . $ftp->message;
@@ -138,7 +138,7 @@ sub mbz_download_replication {
 		or die "Can't change directory ($g_rep_url): " . $ftp->message;
 	$ftp->binary();
 	$ftp->get($file, $localfile) or $found = 0;
-	
+
 	print "Done\n";
 	return $found;
 }
@@ -149,8 +149,8 @@ sub mbz_download_replication {
 # indexes and PL/pgSQL. It will later be converted for the RDBMS we are using.
 # @return Always 1.
 sub mbz_download_schema {
-	# TODO: We must download other SQL files (e.g. Functions and Indexes) for CoverArt and Statistics
-	# This variable organization $g_xxx_url might not work anymore. It should be best to split this into a subfunction.
+
+	# main tables and stuff
 	unlink("replication/CreateTables.sql");
 	mbz_download_file($g_schema_url, "replication/CreateTables.sql");
 	unlink("replication/CreateIndexes.sql");
@@ -161,12 +161,19 @@ sub mbz_download_schema {
 	mbz_download_file($g_indexfk_url, "replication/CreateFKConstraints.sql");
 	unlink("replication/CreateFunctions.sql");
 	mbz_download_file($g_func_url, "replication/CreateFunctions.sql");
-	unlink("replication/ReplicationSetup.sql");
-	mbz_download_file($g_pending_url, "replication/ReplicationSetup.sql");
-	unlink("replication/StatisticsSetup.sql");
-	mbz_download_file($g_stats_url, "replication/StatisticsSetup.sql");
-	unlink("replication/CoverArtSetup.sql");
-	mbz_download_file($g_coverart_url, "replication/CoverArtSetup.sql");
+
+	# cover art
+	unlink("replication/coverart/CreateTables.sql");
+	mbz_download_file($g_caa_schema_url, "replication/coverart/CreateTables.sql");
+	unlink("replication/coverart/CreateIndexes.sql");
+	mbz_download_file($g_caa_index_url, "replication/coverart/CreateIndexes.sql");
+	unlink("replication/coverart/CreatePrimaryKeys.sql");
+	mbz_download_file($g_caa_pk_url, "replication/coverart/CreatePrimaryKeys.sql");
+	unlink("replication/coverart/CreateFKConstraints.sql");
+	mbz_download_file($g_caa_indexfk_url, "replication/coverart/CreateFKConstraints.sql");
+	unlink("replication/coverart/CreateFunctions.sql");
+	mbz_download_file($g_caa_func_url, "replication/coverart/CreateFunctions.sql");
+
 	return 1;
 }
 
@@ -202,7 +209,7 @@ sub mbz_format_time {
 	my $mins = int($left / 60);
 	$left -= $mins * 60;
 	my $secs = int($left);
-	
+
 	my $r = "";
 	$r .= $hours . "h " if($hours > 0);
 	$r .= " " if($mins < 10);
@@ -288,7 +295,7 @@ sub mbz_init_plugins {
 		my $function_name = "${plugin}_init";
 		(\&$function_name)->() || warn($!);
 	}
-	
+
 	return 1;
 }
 
@@ -326,13 +333,13 @@ sub mbz_map_kv {
 	my ($data, $join) = @_;
 	my $r = "";
 	my $first = 1;
-	
+
 	foreach my $k (keys(%$data)) {
 		$r .= $join if(!$first);
 		$first = 0 if($first);
 		$r .= mbz_escape_entity($k) . "=" . $dbh->quote($data->{$k});
 	}
-	
+
 	return $r;
 }
 
@@ -349,23 +356,23 @@ sub mbz_map_kv {
 sub mbz_map_values {
 	my ($data, $join) = @_;
 	my $r = "(";
-	
+
 	my $first = 1;
 	foreach my $k (keys(%$data)) {
 		$r .= ',' if(!$first);
 		$first = 0 if($first);
 		$r .= mbz_escape_entity($k);
 	}
-	
+
 	$r .= ") values (";
-	
+
 	my $first = 1;
 	foreach my $k (keys(%$data)) {
 		$r .= ',' if(!$first);
 		$first = 0 if($first);
 		$r .= $dbh->quote($data->{$k});
 	}
-	
+
 	$r .= ")";
 	return $r;
 }
@@ -394,7 +401,7 @@ sub mbz_pad_right {
 sub mbz_raw_download {
 	my $host = 'ftp.musicbrainz.org';
 	my @files;
-	
+
 	# find out the latest NGS
 	my $latest = "";
 	print "Logging into MusicBrainz FTP ($host)...\n";
@@ -408,19 +415,19 @@ sub mbz_raw_download {
 	print "The latest is mbdump is '$latest'\n";
 	$ftp->cwd("/pub/musicbrainz/data/fullexport/$latest")
 			or die "Can't change directory (ftp.musicbrainz.org): " . $ftp->message;
-			
+
 	@files = (
 		'mbdump-stats.tar.bz2',
 		'mbdump-derived.tar.bz2',
 		'mbdump.tar.bz2'
 	);
-	
+
 	# probably need this
 	$ftp->binary();
-	
+
 	foreach my $file (@files) {
 		print localtime() . ": Downloading $file... ";
-		
+
 		# if the file exists, don't download it again
 		if(-e "replication/$file") {
 			print "File already downloaded\n";
@@ -430,7 +437,7 @@ sub mbz_raw_download {
 			print "Done\n";
 		}
 	}
-	
+
 	return 1;
 }
 
@@ -454,7 +461,7 @@ sub mbz_remove_quotes {
 # @return 1 on success, otherwise 0.
 sub mbz_rewrite_settings {
 	open(SETTINGS, "> src/firstboot.pl") or return 0;
-	
+
 	print SETTINGS "# First boot\n";
 	print SETTINGS "\$g_chosenlanguage = $g_chosenlanguage;\n";
 	print SETTINGS "\$g_firstboot      = $g_firstboot;\n\n";
@@ -463,7 +470,7 @@ sub mbz_rewrite_settings {
 	print SETTINGS "\$g_language = '$g_language';\n\n";
 
 	print SETTINGS "return 1;\n";
-	
+
 	close(SETTINGS);
 	return 1;
 }
@@ -523,33 +530,33 @@ sub mbz_run_transactions {
 	my $totalreps = mbz_get_count($g_pending);
 	$starttime = time() - 1;
 	$currep = mbz_get_current_replication();
-	
+
 	my ($key, $data);
 	for(my $rows = 1; @rep_row = $rep_handle->fetchrow_array(); ) {
 		# next if we are ignoring this table
 		my $pos = index($rep_row[1], '.');
 		my $tableName = substr($rep_row[1], $pos + 2, length($rep_row[1]) - $pos - 3);
-		
+
 		if(mbz_in_array(\@g_ignore_tables, $tableName)) {
 			++$rows if(($rep_row[5] eq '0' || $rep_row[5] eq 'f') || $rep_row[2] eq 'd');
 			mbz_do_sql("DELETE FROM $pending WHERE $seqid='$rep_row[0]'");
 			mbz_do_sql("DELETE FROM $pendingdata WHERE $seqid='$rep_row[0]'");
 			next;
 		}
-		
+
 		# also ignore any table that starts with "nz"
 		next if(substr($tableName, 0, 2) eq "nz");
-		
+
 		# rename sanitised tables
 		$tableName = "release_meta" if($tableName eq "release_meta_sanitised");
-	
+
 		# we use '1' and 't' for MySQL and PostgreSQL
 		$key = mbz_unpack_data($rep_row[6]) if($rep_row[5] eq '1' or $rep_row[5] eq 't');
-		
+
 		# we use '0' and 'f' for MySQL and PostgreSQL
 		if(($rep_row[5] eq '0' || $rep_row[5] eq 'f') || $rep_row[2] eq 'd') {
 			$data = mbz_unpack_data($rep_row[6]);
-			
+
 			# build replicated SQL
 			my $sql = "INSERT INTO ";
 			$sql = "UPDATE " if($rep_row[2] eq 'u');
@@ -561,28 +568,28 @@ sub mbz_run_transactions {
 				$sql .= "SET " . mbz_map_kv($data, ',');
 			}
 			$sql .= " WHERE " . mbz_map_kv($key, " AND ") if(defined($key));
-				
+
 			# PLUGIN_beforestatement()
 			foreach my $plugin (@g_active_plugins) {
 				my $function_name = "${plugin}_beforestatement";
 				(\&$function_name)->($tableName, $rep_row[0], $rep_row[2], \$data) || warn ($!);
 			}
-			
+
 			# execute SQL
 			mbz_do_sql($sql);
-			print mbz_pad_right($rows, length($totalreps), ' '), "/$totalreps (", 
+			print mbz_pad_right($rows, length($totalreps), ' '), "/$totalreps (",
 			      mbz_pad_right(mbz_round($rows / $totalreps * 100), 3, ' '), '%)   ',
 			      "Run: " . mbz_format_time(time() - $starttime) . "   ",
 			      "ETA: " . mbz_format_time(((time() - $starttime) * ($totalreps / $rows)) *
 			      	(($totalreps - $rows) / $totalreps)),
 			      "\n";
-				
+
 			# PLUGIN_afterstatement()
 			foreach my $plugin (@g_active_plugins) {
 				my $function_name = "${plugin}_afterstatement";
 				(\&$function_name)->($tableName, $rep_row[0], $rep_row[2], \$data) || warn ($!);
 			}
-			
+
 			# clear for next round
 			mbz_do_sql("DELETE FROM $pending WHERE $seqid='$rep_row[0]'");
 			mbz_do_sql("DELETE FROM $pendingdata WHERE $seqid='$rep_row[0]'");
@@ -591,13 +598,13 @@ sub mbz_run_transactions {
 			++$rows;
 		}
 	}
-	
+
 	# PLUGIN_afterreplication()
 	foreach my $plugin (@g_active_plugins) {
 		my $function_name = "${plugin}_afterreplication";
 		(\&$function_name)->($currep) || warn ($!);
 	}
-	
+
 	# Clean up. Remove old replication
 	if($^O eq "MSWin32") {
 		system("del \"replication/replication-$currep.tar.bz2\"");
@@ -608,7 +615,7 @@ sub mbz_run_transactions {
 		system("$g_rm -f \"replication/replication-$currep.tar\"");
 		system("$g_rm -f -r \"replication/$currep\"");
 	}
-	
+
 	return 1;
 }
 
@@ -641,7 +648,7 @@ sub mbz_show_update_help {
 	print "-p or --onlypending    Only process pending transactions then quit.\n";
 	print "-q or --quiet          Non-verbose. The status of each statement is not printed.\n";
 	print "-t or --truncate       Force TRUNCATE on $g_pending and $g_pendingdata tables.\n";
-	
+
 	return 1;
 }
 
@@ -666,7 +673,7 @@ sub mbz_sql_error {
 	} else {
 		warn("SQL: '$stmt'\n\n");
 	}
-	
+
 	return 0;
 }
 
@@ -751,7 +758,7 @@ sub mbz_unpack_data {
 
 		$answer{$k} = $v;
 	}
-	
+
 	# delete unwanted fields
 	foreach my $dfield (@g_ignore_fields) {
 		delete $answer{$dfield};
@@ -787,14 +794,14 @@ sub mbz_unzip_mbdump {
 sub mbz_unzip_mbdumps {
 	opendir(MBDUMP, "replication");
 	my @files = sort(readdir(MBDUMP));
-	
+
 	foreach my $file (@files) {
 		if(substr($file, 0, 6) eq 'mbdump' && substr($file, length($file) - 8, 8) eq '.tar.bz2' &&
 		   substr($file, 0, 1) ne '.') {
 			mbz_unzip_mbdump($file);
 		}
 	}
-	
+
 	closedir(MBDUMP);
 	return 1;
 }
@@ -847,7 +854,7 @@ sub mbz_update_schema {
 	print $L{'downloadschema'};
 	mbz_download_schema();
 	print $L{'done'} . "\n";
-	
+
 	# use the subroutine appropriate for the RDBMS
 	my $function_name = "backend_${g_db_rdbms}_update_schema";
 	return (\&$function_name)->();
