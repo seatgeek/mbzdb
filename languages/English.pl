@@ -44,7 +44,8 @@ $L{'init_action'} =
 "[4] Load raw tables (don't download, load from 'mbdump/')\n".
 "[5] Apply table indexing\n".
 "[6] Apply table foreign keys\n".
-"[7] Initialise plugins\n\n".
+"[7] Initialise plugins\n".
+"[8] NOOP\n\n".
 "Option: ";
 
 # action descriptions
@@ -85,5 +86,9 @@ $L{'init_actionplugininit'} =
 "with the active plugins you wish to initialise in \@g_active_plugins.\n\n".
 "Plugins to be initialised are: " . join(',', @g_active_plugins) . "\n\n".
 "Ready to proceed? (y/n): ";
+
+$L{'init_noop'} =
+"Runs a NOOP command\n\n".
+"Ready to proceed?  (y/n): ";
 
 return 1;
