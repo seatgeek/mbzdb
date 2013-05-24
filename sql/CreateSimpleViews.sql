@@ -81,6 +81,18 @@ FROM artist a
     JOIN link l ON au.link = l.id
 WHERE link_type in (287, 183, 219);
 
+CREATE OR REPLACE VIEW v_official_url AS
+SELECT  a.id,
+        a.gid as 'mbid',
+        an.name as 'artist_name',
+        u.url as 'url'
+FROM artist a
+    JOIN artist_name an ON a.name = an.id
+    JOIN l_artist_url au ON a.id = au.entity0
+    JOIN url u ON u.id = au.entity1
+    JOIN link l ON au.link = l.id
+WHERE link_type in (287, 183, 219);
+
 CREATE OR REPLACE VIEW s_all_links AS
 SELECT  a.id as 'artist_id',
         a.gid as 'mbid',
@@ -120,6 +132,32 @@ FROM artist a
 WHERE ac.id is not null
     AND r.id is not null
     AND rc.date_year is not NULL;
+
+CREATE OR REPLACE VIEW v_album_releases AS
+SELECT  a.id,
+        a.gid as 'mbid',
+        acn.artist AS acn_artist,
+        ac.id as ac_id,
+        an.name as artist_name,
+        r.id as release_id,
+        aa.name as country,
+        rc.date_year as 'release_year',
+        r.release_group as release_group,
+        r.name as release_name_id,
+        r.status as release_status,
+        rn.name as release_name
+FROM artist a
+    JOIN artist_name an ON a.name = an.id
+    JOIN artist_credit_name acn ON acn.artist = a.id
+    JOIN artist_credit ac ON ac.id = acn.artist_credit
+    JOIN `release` r ON r.artist_credit = ac.id
+    JOIN release_name rn ON rn.id = r.name
+    JOIN release_country rc ON rc.release = r.id
+    JOIN area aa ON aa.id = rc.country = aa.id
+WHERE ac.id is not null
+    AND r.id is not null
+    AND rc.date_year is not NULL;
+
 
 CREATE OR REPLACE VIEW s_release_group_cover_art AS
 select
