@@ -80,8 +80,7 @@ def download_data(path):
         sys.stdout.flush()
         f.write(block)
 
-    #for fn, fp in [(mbdump_filename, mbdump_path), (caa_filename, caa_path)]:
-    for fn, fp in [(caa_filename, caa_path)]:
+    for fn, fp in [(mbdump_filename, mbdump_path), (caa_filename, caa_path)]:
         print "DOWNLOAD", fn, "TO", fp
         execute_wrapper("mkdir -p {0}".format(fp))
         temp1 = os.path.join(path, fn)
@@ -104,7 +103,7 @@ def download_data(path):
         cmd = "mv {0} {1}".format(os.path.join(temp3, "mbdump", "*"), fp)
         execute_wrapper(cmd)
 
-        # remove tar file
+        # cleanup
         print "-- rm", temp1
         cmd = "rm {0}".format(temp1)
         execute_wrapper(cmd)
@@ -123,7 +122,6 @@ if __name__ == '__main__':
     # --- anything else ---
 
     args = parser.parse_args()
-
     download_data(args.path)
 
 
