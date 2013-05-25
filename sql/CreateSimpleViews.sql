@@ -186,7 +186,7 @@ select
     rg.gid as 'release_group_mbid',
     rn.name as 'release_group_name',
     rc.date_year) as 'release_year',
-    pt.name as 'type',
+    pt.name as 'primary_type',
     st.name as 'secondary_type'
 FROM artist a
     JOIN artist_credit_name acn ON acn.artist = a.id
