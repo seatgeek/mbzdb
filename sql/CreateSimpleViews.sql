@@ -8,8 +8,8 @@ CREATE OR REPLACE VIEW s_artist AS
     FROM artist a
     JOIN artist_name n ON a.name=n.id
     JOIN artist_name sn ON a.sort_name=sn.id
-    JOIN area aa ON a.area = aa.id
-    JOIN artist_type at ON at.id = a.type;
+    LEFT JOIN area aa ON a.area = aa.id
+    LEFT JOIN artist_type at ON at.id = a.type;
 
 CREATE OR REPLACE VIEW s_artist_credit AS
     SELECT
@@ -37,6 +37,7 @@ CREATE OR REPLACE VIEW s_label AS
     JOIN area aa ON a.area = aa.id
     JOIN label_type lt ON lt.id = a.type;
 
+# unused
 CREATE OR REPLACE VIEW s_recording AS
     SELECT
         r.id, gid, n.name, artist_credit,
