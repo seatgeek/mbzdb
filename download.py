@@ -80,7 +80,7 @@ def download_data(path):
         sys.stdout.flush()
         f.write(block)
 
-    for fn, fp in [(mbdump_filename, mbdump_path), (caa_filename, caa_path)]:
+    for fn, fp in [(caa_filename, caa_path), (mbdump_filename, mbdump_path)]:
         print "DOWNLOAD", fn, "TO", fp
         execute_wrapper("mkdir -p {0}".format(fp))
         temp1 = os.path.join(path, fn)
