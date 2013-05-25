@@ -173,6 +173,10 @@ from s_release r
     join art_type at ON at.id = cat.type_id
     join s_release_group rg ON r.release_group = rg.id;
 
+## QUERY THIS WITH
+# select artist_id, artist_mbid, release_group_name as album_name, release_year, type, secondary_type from s_release_groups_by_artist
+# where artist_mbid = '70248960-cb53-4ea4-943a-edb18f7d336f' and type = 'album'
+# group by release_group_id
 CREATE OR REPLACE VIEW s_release_groups_by_artist AS
 select
     a.id as 'artist_id',
@@ -181,7 +185,7 @@ select
     rg.id as 'release_group_id',
     rg.gid as 'release_group_mbid',
     rn.name as 'release_group_name',
-    min(rc.date_year) as 'release_year',
+    rc.date_year) as 'release_year',
     pt.name as 'type',
     st.name as 'secondary_type'
 FROM artist a
@@ -193,8 +197,7 @@ FROM artist a
     JOIN release_country rc ON rc.`release` = r.id and rc.date_year is not null
     LEFT JOIN release_group_primary_type pt ON pt.id = rg.type
     LEFT JOIN release_group_secondary_type_join tj ON tj.release_group = rg.id
-    LEFT JOIN release_group_secondary_type st ON st.id = tj.secondary_type
-group by rg.id;
+    LEFT JOIN release_group_secondary_type st ON st.id = tj.secondary_type;
 
 CREATE OR REPLACE VIEW s_cover_art_by_artist AS
 select
