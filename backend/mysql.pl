@@ -108,7 +108,7 @@ sub backend_mysql_load_data {
 	# my $count = @files;
 	# my $i = 1;
 
-	$base_path = "/tmp/musicbrainz/mbdump/mbdump";
+	$base_path = "./mbdata/mbdump";
 
 	@tables_to_load = (
 
@@ -475,13 +475,13 @@ sub backend_mysql_update_index_from_file {
 
 		# all looks good so far ... create the index
 		print "$new_line\n";
-		my $success = mbz_do_sql($new_line);
+		my $success = mbz_do_sql($new_line, 'nodie');
 
 		# if the index fails we will run it again as non-unique
 		# TODO: nodie here?
 		if(!$success) {
 			$new_line =~ s/UNIQUE//;
-			mbz_do_sql($new_line);
+			mbz_do_sql($new_line, 'nodie');
 		}
 	}
 	close(SQL);

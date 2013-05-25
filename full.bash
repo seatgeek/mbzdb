@@ -6,6 +6,10 @@ echo $DATA_PATH
 echo "Run Download Script"
 python download.py --path $DATA_PATH
 
+echo "Create Replication Directories"
+mkdir -p replication
+mkdir -p replication/coverart
+
 echo "Run Init Script"
 init.pl 2
 
