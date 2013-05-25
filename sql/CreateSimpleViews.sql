@@ -181,16 +181,20 @@ select
     rg.id as 'release_group_id',
     rg.gid as 'release_group_mbid',
     rn.name as 'release_group_name',
+    min(rc.date_year) as 'release_year',
     pt.name as 'type',
-st.name as 'secondary_type'
+    st.name as 'secondary_type'
 FROM artist a
     JOIN artist_credit_name acn ON acn.artist = a.id
     JOIN artist_credit ac ON acn.artist_credit = ac.id
     JOIN release_group rg ON rg.artist_credit = ac.id
     JOIN release_name rn ON rn.id = rg.name
+    JOIN `release` r ON r.release_group = rg.id
+    JOIN release_country rc ON rc.`release` = r.id and rc.date_year is not null
     LEFT JOIN release_group_primary_type pt ON pt.id = rg.type
     LEFT JOIN release_group_secondary_type_join tj ON tj.release_group = rg.id
-    LEFT JOIN release_group_secondary_type st ON st.id = tj.secondary_type;
+    LEFT JOIN release_group_secondary_type st ON st.id = tj.secondary_type
+group by rg.id;
 
 CREATE OR REPLACE VIEW s_cover_art_by_artist AS
 select
