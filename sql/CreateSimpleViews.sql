@@ -11,6 +11,20 @@ CREATE OR REPLACE VIEW s_artist AS
     LEFT JOIN area aa ON a.area = aa.id
     LEFT JOIN artist_type at ON at.id = a.type;
 
+CREATE OR REPLACE VIEW s_artist_alias AS
+ SELECT a.id,
+    a.gid as 'mbid',
+    n.name,
+    sn.name as 'sort_name',
+    aat.name as 'alias_type',
+    aa.locale,
+    IF(aa.primary_for_locale = 't', 1, 0) as 'primary_for_locale'
+FROM artist a
+    JOIN artist_alias aa ON aa.artist = a.id
+    JOIN artist_name n ON aa.name=n.id
+    JOIN artist_name sn ON aa.sort_name=sn.id
+    LEFT JOIN artist_alias_type aat ON aat.id = aa.type;
+
 CREATE OR REPLACE VIEW s_artist_credit AS
     SELECT
         a.id, n.name, artist_count, ref_count, created
