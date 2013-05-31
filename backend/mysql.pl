@@ -434,6 +434,16 @@ sub backend_mysql_update_index_from_file {
 	my $index_size = 200;
 	foreach my $line (@lines) {
 		$line = mbz_trim($line);
+
+		# if this is a partial unique index, make it a non-unique index
+		if (substr($line, 0, 13) eq 'CREATE UNIQUE') {
+			if (index($line, 'WHERE') > 0) {
+				my $idx = index($line, 'WHERE');
+				$line = substr($line, 0, $idx) . ';';
+				$line = "CREATE" . substr($line, 13);
+			}
+		}
+
 		my $pos_index = index($line, 'INDEX ');
 		my $pos_on = index($line, 'ON ');
 
