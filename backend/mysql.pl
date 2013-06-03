@@ -471,9 +471,11 @@ sub backend_mysql_update_index_from_file {
 		# split and clean column names. this is also a good time to find out there type, if its
 		# TEXT then MySQL requires and index length.
 		my @columns = split(",", $cols);
+		my $strip_unique = 0;
 		for(my $i = 0; $i < @columns; ++$i) {
 			if((backend_mysql_get_column_type($table_name, mbz_trim($columns[$i])) eq 'text') || (backend_mysql_get_column_type($table_name, mbz_trim($columns[$i])) eq 'varchar')  ) {
 				$columns[$i] = "`" . mbz_trim(mbz_remove_quotes($columns[$i])) . "`($index_size)";
+				$strip_unique = 1;
 			} else {
 				$columns[$i] = "`" . mbz_trim(mbz_remove_quotes($columns[$i])) . "`";
 			}
@@ -482,6 +484,10 @@ sub backend_mysql_update_index_from_file {
 		# now we construct the index back together in case there was changes along the way
 		$new_line = substr($line, 0, $pos_index) . "INDEX `$index_name` ON `$table_name` (";
 		$new_line .= join(",", @columns) . ")";
+
+		if ($strip_unique) {
+			$new_line =~ s/UNIQUE//;
+		}
 
 		# all looks good so far ... create the index
 		print "$new_line\n";
